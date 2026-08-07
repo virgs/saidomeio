@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>saidomeio</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <img src="../icons/icon48.png" alt="">
+        <div>
+          <h1>saidomeio</h1>
+          <p>Config</p>
+        </div>
+      </header>
+
+      <form id="config-form">
+        <section>
+          <label class="check">
+            <input id="enabled" type="checkbox">
+            <span>Enabled</span>
+          </label>
+        </section>
+
+        <section class="grid">
+          <label>
+            <span>Scan interval (ms)</span>
+            <input id="scanIntervalMs" type="number" min="50" step="50">
+          </label>
+          <label>
+            <span>Scan duration (ms)</span>
+            <input id="scanDurationMs" type="number" min="1000" step="500">
+          </label>
+        </section>
+
+        <section>
+          <label>
+            <span>Allow sites</span>
+            <textarea id="allowSites" spellcheck="false"></textarea>
+          </label>
+          <p class="hint">Empty means all sites. Use one per line, such as <code>g1.globo.com</code>, <code>*.globo.com</code>, or <code>dailyhive.com</code>.</p>
+        </section>
+
+        <section>
+          <label>
+            <span>Block sites</span>
+            <textarea id="blockSites" spellcheck="false"></textarea>
+          </label>
+        </section>
+
+        <section>
+          <label>
+            <span>Auto-close selectors</span>
+            <textarea id="autoCloseSelectors" spellcheck="false"></textarea>
+          </label>
+        </section>
+
+        <section>
+          <label>
+            <span>Escape selectors</span>
+            <textarea id="escapeCloseSelectors" spellcheck="false"></textarea>
+          </label>
+        </section>
+
+        <section>
+          <label>
+            <span>Auto-close text</span>
+            <textarea id="autoCloseText" spellcheck="false"></textarea>
+          </label>
+        </section>
+
+        <section>
+          <label>
+            <span>Escape text</span>
+            <textarea id="escapeCloseText" spellcheck="false"></textarea>
+          </label>
+        </section>
+
+        <section>
+          <label>
+            <span>JSON overrides</span>
+            <textarea id="jsonConfig" spellcheck="false"></textarea>
+          </label>
+        </section>
+
+        <footer>
+          <button type="submit">Save</button>
+          <button id="reset" type="button">Reset</button>
+          <span id="status" role="status"></span>
+        </footer>
+      </form>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

@@ -14,3 +14,25 @@ It watches for known close/dismiss controls after a page loads and also lets `Es
 ## Notes
 
 The extension runs on all URLs so it can work beyond one specific news site. Browser pages, extension stores, and other protected pages may still block content scripts.
+
+## Configuration
+
+Defaults live in `config.default.json`.
+
+Browser overrides can be edited from the extension popup or from the extension's Options page. The configurable values include:
+
+- enabled/disabled state
+- scan interval and scan duration
+- site allow list and block list
+- auto-close CSS selectors
+- Escape-key CSS selectors
+- auto-close text matches
+- Escape-key text matches
+
+Site entries are host-based. Examples:
+
+```text
+g1.globo.com
+*.globo.com
+dailyhive.com
+```

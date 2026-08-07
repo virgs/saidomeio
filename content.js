@@ -1,77 +1,107 @@
-const AUTO_CLOSE_SELECTORS = [
-  ".fc-close.fc-icon-button",
-  ".fc-close",
-  ".fc-dialog-container .fc-button[aria-label*='close' i]",
-  ".fc-dialog-container [aria-label*='close' i]",
-  ".fc-consent-root [aria-label*='close' i]",
-  "#onetrust-close-btn-container button",
-  "#onetrust-reject-all-handler",
-  ".onetrust-close-btn-handler",
-  ".osano-cm-close",
-  ".qc-cmp2-close-icon",
-  ".qc-cmp2-summary-buttons button[mode='secondary']",
-  ".didomi-popup-notice__close",
-  ".didomi-components-button[aria-label*='disagree' i]",
-  "[data-testid='close-button']",
-  "[data-testid='modal-close']",
-  "[data-test='modal-close']",
-  "[data-cy='modal-close']",
-  "[aria-label='Close']",
-  "[aria-label='close']",
-  "[aria-label='Dismiss']",
-  "[aria-label='dismiss']",
-  "[aria-label='No thanks']",
-  "[aria-label='Not now']",
-  "button[title='Close']",
-  "button[title='close']",
-  "button[title='Dismiss']",
-  "button[title='No thanks']",
-  "button[title='Not now']",
-];
+const STORAGE_KEY = "saidomeioConfig";
 
-const ESCAPE_CLOSE_SELECTORS = [
-  ...AUTO_CLOSE_SELECTORS,
-  "button",
-  "[role='button']",
-  "a[href]",
-];
-
-const AUTO_CLOSE_TEXT = [
-  "agora nao",
-  "nao obrigado",
-  "no thanks",
-  "not now",
-  "maybe later",
-  "talvez mais tarde",
-  "mais tarde",
-  "dispensar",
-  "dismiss",
-];
-
-const CLOSE_TEXT = [
-  "close",
-  "dismiss",
-  "no thanks",
-  "not now",
-  "maybe later",
-  "skip",
-  "fechar",
-  "dispensar",
-  "agora nao",
-  "nao obrigado",
-  "talvez mais tarde",
-  "mais tarde",
-  "recusar",
-  "reject",
-  "decline",
-];
-
-const scanIntervalMs = 250;
-const scanDurationMs = 15000;
-const clicked = new WeakSet();
+let config = null;
+let clicked = new WeakSet();
 let scanIntervalId = null;
 let observer = null;
-let scanStart = Date.now();
+let scanStart = 0;
+
+async function loadDefaultConfig() {
+  const response = await fetch(chrome.runtime.getURL("config.default.json"));
+  return response.json();
+}
+
+function getStoredConfig() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get(STORAGE_KEY, (items) => {
+      resolve(items[STORAGE_KEY] || {});
+    });
+  });
+}
+
+function mergeConfig(defaultConfig, storedConfig) {
+  const arrayOrDefault = (value, defaultValue) => Array.isArray(value) ? value : defaultValue;
+
+  return {
+    ...defaultConfig,
+    ...storedConfig,
+    autoCloseSelectors: arrayOrDefault(storedConfig.autoCloseSelectors, defaultConfig.autoCloseSelectors),
+    escapeCloseSelectors: arrayOrDefault(storedConfig.escapeCloseSelectors, defaultConfig.escapeCloseSelectors),
+    autoCloseText: arrayOrDefault(storedConfig.autoCloseText, defaultConfig.autoCloseText),
+    escapeCloseText: arrayOrDefault(storedConfig.escapeCloseText, defaultConfig.escapeCloseText),
+    allowSites: arrayOrDefault(storedConfig.allowSites, defaultConfig.allowSites),
+    blockSites: arrayOrDefault(storedConfig.blockSites, defaultConfig.blockSites),
+  };
+}
+
+function normalizeText(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function normalizeHost(value) {
+  try {
+    return new URL(value).hostname.toLowerCase();
+  } catch {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/.*$/, "");
+  }
+}
+
+function sitePatternMatches(pattern, hostname) {
+  const normalizedPattern = normalizeHost(pattern);
+
+  if (!normalizedPattern) {
+    return false;
+  }
+
+  if (normalizedPattern === "*" || normalizedPattern === hostname) {
+    return true;
+  }
+
+  if (normalizedPattern.startsWith("*.")) {
+    const suffix = normalizedPattern.slice(2);
+    return hostname === suffix || hostname.endsWith(`.${suffix}`);
+  }
+
+  return hostname === normalizedPattern || hostname.endsWith(`.${normalizedPattern}`);
+}
+
+function shouldRunOnCurrentSite(currentConfig) {
+  if (!currentConfig.enabled) {
+    return false;
+  }
+
+  const hostname = window.location.hostname.toLowerCase();
+  const allowSites = currentConfig.allowSites || [];
+  const blockSites = currentConfig.blockSites || [];
+
+  if (blockSites.some((site) => sitePatternMatches(site, hostname))) {
+    return false;
+  }
+
+  return allowSites.length === 0 || allowSites.some((site) => sitePatternMatches(site, hostname));
+}
+
+function getAutoCloseSelectors() {
+  return config.autoCloseSelectors || [];
+}
+
+function getEscapeCloseSelectors() {
+  return [
+    ...new Set([
+      ...getAutoCloseSelectors(),
+      ...(config.escapeCloseSelectors || []),
+    ]),
+  ];
+}
 
 function isVisible(element) {
   if (!(element instanceof Element)) {
@@ -90,15 +120,6 @@ function isVisible(element) {
   );
 }
 
-function normalizeText(value) {
-  return value
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ");
-}
-
 function getElementText(element) {
   const values = [
     element.getAttribute("aria-label"),
@@ -112,14 +133,9 @@ function getElementText(element) {
   return normalizeText(values.filter(Boolean).join(" "));
 }
 
-function matchesCloseText(element) {
+function matchesText(element, textList) {
   const text = getElementText(element);
-  return CLOSE_TEXT.some((closeText) => text.includes(closeText));
-}
-
-function matchesAutoCloseText(element) {
-  const text = getElementText(element);
-  return AUTO_CLOSE_TEXT.some((closeText) => text.includes(closeText));
+  return textList.some((closeText) => text.includes(normalizeText(closeText)));
 }
 
 function queryAllInRoot(root, selectors) {
@@ -129,7 +145,7 @@ function queryAllInRoot(root, selectors) {
     try {
       elements.push(...root.querySelectorAll(selector));
     } catch (error) {
-      console.debug("Popup Dismiss Helper skipped selector:", selector, error);
+      console.debug("saidomeio skipped selector:", selector, error);
     }
   });
 
@@ -149,21 +165,21 @@ function clickElement(element, reason) {
 
   clicked.add(element);
   element.click();
-  console.debug("Popup Dismiss Helper clicked:", reason, element);
+  console.debug("saidomeio clicked:", reason, element);
   return true;
 }
 
 function autoClose() {
-  const candidates = queryAllInRoot(document, AUTO_CLOSE_SELECTORS);
+  const selectorCandidates = queryAllInRoot(document, getAutoCloseSelectors());
 
-  for (const element of candidates) {
+  for (const element of selectorCandidates) {
     if (clickElement(element, "auto selector")) {
       return true;
     }
   }
 
-  const textCandidates = queryAllInRoot(document, ESCAPE_CLOSE_SELECTORS)
-    .filter((element) => isVisible(element) && matchesAutoCloseText(element));
+  const textCandidates = queryAllInRoot(document, getEscapeCloseSelectors())
+    .filter((element) => isVisible(element) && matchesText(element, config.autoCloseText || []));
 
   for (const element of textCandidates) {
     if (clickElement(element, "auto text")) {
@@ -175,8 +191,8 @@ function autoClose() {
 }
 
 function closeOnEscape() {
-  const candidates = queryAllInRoot(document, ESCAPE_CLOSE_SELECTORS)
-    .filter((element) => isVisible(element) && matchesCloseText(element));
+  const candidates = queryAllInRoot(document, getEscapeCloseSelectors())
+    .filter((element) => isVisible(element) && matchesText(element, config.escapeCloseText || []));
 
   for (const element of candidates) {
     if (clickElement(element, "Escape")) {
@@ -188,10 +204,14 @@ function closeOnEscape() {
 }
 
 function stopScanningIfDone() {
-  if (Date.now() - scanStart < scanDurationMs) {
+  if (Date.now() - scanStart < config.scanDurationMs) {
     return;
   }
 
+  stopScanning();
+}
+
+function stopScanning() {
   if (scanIntervalId) {
     clearInterval(scanIntervalId);
     scanIntervalId = null;
@@ -208,25 +228,50 @@ function scan() {
   stopScanningIfDone();
 }
 
-scan();
-scanIntervalId = window.setInterval(scan, scanIntervalMs);
-
-observer = new MutationObserver(() => {
+function startScanning() {
+  stopScanning();
+  clicked = new WeakSet();
   scanStart = Date.now();
-  scan();
-});
 
-observer.observe(document.documentElement, {
-  childList: true,
-  subtree: true,
-});
+  if (!shouldRunOnCurrentSite(config)) {
+    return;
+  }
+
+  scan();
+  scanIntervalId = window.setInterval(scan, config.scanIntervalMs);
+
+  observer = new MutationObserver(() => {
+    scanStart = Date.now();
+    scan();
+  });
+
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+  });
+}
+
+async function reloadConfig() {
+  const defaultConfig = await loadDefaultConfig();
+  const storedConfig = await getStoredConfig();
+  config = mergeConfig(defaultConfig, storedConfig);
+  startScanning();
+}
 
 window.addEventListener(
   "keydown",
   (event) => {
-    if (event.key === "Escape") {
+    if (event.key === "Escape" && config && shouldRunOnCurrentSite(config)) {
       closeOnEscape();
     }
   },
   true,
 );
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === "sync" && changes[STORAGE_KEY]) {
+    reloadConfig();
+  }
+});
+
+reloadConfig();

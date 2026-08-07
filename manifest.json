@@ -3,6 +3,9 @@
     "name": "saidomeio",
     "version": "1.1.0",
     "description": "Gets common overlays out of the way.",
+    "permissions": [
+        "storage"
+    ],
     "icons": {
         "16": "icons/icon16.png",
         "48": "icons/icon48.png",
@@ -14,7 +17,12 @@
             "48": "icons/icon48.png",
             "128": "icons/icon128.png"
         },
-        "default_title": "saidomeio"
+        "default_title": "saidomeio",
+        "default_popup": "options/options.html"
+    },
+    "options_ui": {
+        "page": "options/options.html",
+        "open_in_tab": true
     },
     "content_scripts": [
         {
@@ -25,6 +33,16 @@
                 "content.js"
             ],
             "run_at": "document_idle"
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "config.default.json"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
         }
     ]
 }
