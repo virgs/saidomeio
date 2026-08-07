@@ -13,6 +13,7 @@ const fields = {
   jsonConfig: document.querySelector("#jsonConfig"),
   defaultAllowSites: document.querySelector("#defaultAllowSites"),
   defaultBlockSites: document.querySelector("#defaultBlockSites"),
+  currentSite: document.querySelector("#currentSite"),
 };
 
 const status = document.querySelector("#status");
@@ -20,8 +21,11 @@ const form = document.querySelector("#config-form");
 const resetButton = document.querySelector("#reset");
 const restoreAllowSitesButton = document.querySelector("#restoreAllowSites");
 const restoreBlockSitesButton = document.querySelector("#restoreBlockSites");
+const toggleAllowCurrentSiteButton = document.querySelector("#toggleAllowCurrentSite");
+const toggleBlockCurrentSiteButton = document.querySelector("#toggleBlockCurrentSite");
 
 let defaultConfig = null;
+let currentHostname = "";
 let jsonChangedManually = false;
 
 function getStoredConfig() {
@@ -79,6 +83,79 @@ function fromLines(value) {
     .filter(Boolean);
 }
 
+function normalizeHost(value) {
+  try {
+    return new URL(value).hostname.toLowerCase();
+  } catch {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/.*$/, "");
+  }
+}
+
+function getActiveTabHostname() {
+  return new Promise((resolve) => {
+    if (!chrome.tabs) {
+      resolve("");
+      return;
+    }
+
+    chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+      if (chrome.runtime.lastError || !tab?.url) {
+        resolve("");
+        return;
+      }
+
+      try {
+        const url = new URL(tab.url);
+        resolve(["http:", "https:"].includes(url.protocol) ? url.hostname.toLowerCase() : "");
+      } catch {
+        resolve("");
+      }
+    });
+  });
+}
+
+function hasSite(list, hostname) {
+  return list.some((site) => normalizeHost(site) === hostname);
+}
+
+function withoutSite(list, hostname) {
+  return list.filter((site) => normalizeHost(site) !== hostname);
+}
+
+function updateJsonFromForm() {
+  if (!jsonChangedManually) {
+    const formConfig = readFormConfig();
+    fields.jsonConfig.value = JSON.stringify(formConfig, null, 2);
+  }
+}
+
+function updateCurrentSiteControls() {
+  const allowSites = fromLines(fields.allowSites.value);
+  const blockSites = fromLines(fields.blockSites.value);
+  const hasCurrentSite = Boolean(currentHostname);
+
+  fields.currentSite.textContent = hasCurrentSite ? currentHostname : "Unavailable";
+  toggleAllowCurrentSiteButton.disabled = !hasCurrentSite;
+  toggleBlockCurrentSiteButton.disabled = !hasCurrentSite;
+
+  if (!hasCurrentSite) {
+    toggleAllowCurrentSiteButton.textContent = "Add to allow list";
+    toggleBlockCurrentSiteButton.textContent = "Add to block list";
+    return;
+  }
+
+  toggleAllowCurrentSiteButton.textContent = hasSite(allowSites, currentHostname)
+    ? "Remove from allow list"
+    : "Add to allow list";
+  toggleBlockCurrentSiteButton.textContent = hasSite(blockSites, currentHostname)
+    ? "Remove from block list"
+    : "Add to block list";
+}
+
 function showStatus(message) {
   status.textContent = message;
   window.setTimeout(() => {
@@ -102,6 +179,7 @@ function render(config) {
   fields.defaultBlockSites.textContent = describeSiteList(defaultConfig.blockSites, "none");
   fields.jsonConfig.value = JSON.stringify(config, null, 2);
   jsonChangedManually = false;
+  updateCurrentSiteControls();
 }
 
 function readFormConfig() {
@@ -149,6 +227,7 @@ function validateConfig(config) {
 
 async function init() {
   defaultConfig = await loadDefaultConfig();
+  currentHostname = await getActiveTabHostname();
   const storedConfig = await getStoredConfig();
   render(mergeConfig(storedConfig));
 }
@@ -165,10 +244,8 @@ async function init() {
   fields.escapeCloseText,
 ].forEach((field) => {
   field.addEventListener("input", () => {
-    if (!jsonChangedManually) {
-      const formConfig = readFormConfig();
-      fields.jsonConfig.value = JSON.stringify(formConfig, null, 2);
-    }
+    updateJsonFromForm();
+    updateCurrentSiteControls();
   });
 });
 
@@ -186,6 +263,32 @@ restoreBlockSitesButton.addEventListener("click", () => {
   fields.blockSites.value = toLines(defaultConfig.blockSites);
   fields.blockSites.dispatchEvent(new Event("input", { bubbles: true }));
   showStatus("Block list restored");
+});
+
+toggleAllowCurrentSiteButton.addEventListener("click", () => {
+  const allowSites = fromLines(fields.allowSites.value);
+  const blockSites = fromLines(fields.blockSites.value);
+  const nextAllowSites = hasSite(allowSites, currentHostname)
+    ? withoutSite(allowSites, currentHostname)
+    : [...allowSites, currentHostname];
+
+  fields.allowSites.value = toLines(nextAllowSites);
+  fields.blockSites.value = toLines(withoutSite(blockSites, currentHostname));
+  updateJsonFromForm();
+  updateCurrentSiteControls();
+});
+
+toggleBlockCurrentSiteButton.addEventListener("click", () => {
+  const allowSites = fromLines(fields.allowSites.value);
+  const blockSites = fromLines(fields.blockSites.value);
+  const nextBlockSites = hasSite(blockSites, currentHostname)
+    ? withoutSite(blockSites, currentHostname)
+    : [...blockSites, currentHostname];
+
+  fields.blockSites.value = toLines(nextBlockSites);
+  fields.allowSites.value = toLines(withoutSite(allowSites, currentHostname));
+  updateJsonFromForm();
+  updateCurrentSiteControls();
 });
 
 form.addEventListener("submit", async (event) => {

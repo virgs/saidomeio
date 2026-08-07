@@ -80,6 +80,29 @@ label {
   gap: 8px;
 }
 
+.current-site {
+  border: 1px solid #d7cdbf;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff8ec;
+}
+
+.current-site .label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 650;
+}
+
+.current-site code {
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 input,
 textarea,
 button {
@@ -151,6 +174,13 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  border-color: #aaa197;
+  color: #6d665f;
+  background: #ddd5ca;
+  cursor: not-allowed;
+}
+
 button#reset {
   color: #151515;
   background: transparent;
@@ -188,10 +218,21 @@ button.small {
     background: #221e19;
   }
 
+  .current-site {
+    border-color: #4c4238;
+    background: #211c17;
+  }
+
   button {
     border-color: #f4eee2;
     color: #171411;
     background: #f4eee2;
+  }
+
+  button:disabled {
+    border-color: #544a40;
+    color: #8b7f70;
+    background: #312a24;
   }
 
   button#reset {

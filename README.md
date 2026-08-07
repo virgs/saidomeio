@@ -33,6 +33,7 @@ It is useful for prompts like:
 - Configurable text matches for automatic dismissal.
 - Configurable CSS selectors and text matches for `Escape`.
 - Browser UI for normal edits.
+- One-click current-site allow/block controls from the popup.
 - JSON override editor for advanced edits.
 - Default config checked into the repo.
 
@@ -58,6 +59,8 @@ User overrides are saved with `chrome.storage.sync` from the extension popup or 
 - Non-empty allow list: run only on matching sites.
 
 `blockSites` always wins over `allowSites`.
+
+The popup also detects the current tab's domain and lets you add or remove it from either list. This uses Chrome's `activeTab` permission only when you open the extension popup.
 
 Examples:
 
@@ -111,6 +114,12 @@ saidomeio/
 `saidomeio` does not send browsing data anywhere. Configuration is stored by the browser using `chrome.storage.sync`.
 
 Because the extension can run on all URLs, browsers may show broad site-access warnings. Use `allowSites` and `blockSites` if you prefer a narrower scope.
+
+Both lists exist intentionally:
+
+- Use only `blockSites` when you want saidomeio almost everywhere, except a few sites.
+- Use `allowSites` when you want saidomeio only on a short list of sites.
+- If a site appears in both lists, `blockSites` wins.
 
 ## Name
 

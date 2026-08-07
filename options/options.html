@@ -24,6 +24,18 @@
           </label>
         </section>
 
+        <section class="current-site">
+          <div>
+            <span class="label">Current site</span>
+            <code id="currentSite">Unavailable</code>
+          </div>
+          <div class="actions">
+            <button id="toggleAllowCurrentSite" class="small" type="button" disabled>Add to allow list</button>
+            <button id="toggleBlockCurrentSite" class="small" type="button" disabled>Add to block list</button>
+          </div>
+          <p class="hint">Adding a site to the allow list makes saidomeio run only on allowed sites. The block list always wins.</p>
+        </section>
+
         <section class="grid">
           <label>
             <span>Scan interval (ms)</span>
@@ -41,7 +53,7 @@
             <button id="restoreAllowSites" class="small" type="button">Use default</button>
           </div>
           <label>
-            <textarea id="allowSites" spellcheck="false"></textarea>
+            <textarea id="allowSites" spellcheck="false" placeholder="Default: all sites. Leave empty to allow every site."></textarea>
           </label>
           <div class="default-list">
             <strong>Default:</strong>
@@ -56,7 +68,7 @@
             <button id="restoreBlockSites" class="small" type="button">Use default</button>
           </div>
           <label>
-            <textarea id="blockSites" spellcheck="false"></textarea>
+            <textarea id="blockSites" spellcheck="false" placeholder="Default: none. Leave empty to block no sites."></textarea>
           </label>
           <div class="default-list">
             <strong>Default:</strong>
