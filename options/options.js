@@ -4,28 +4,26 @@ const fields = {
   enabled: document.querySelector("#enabled"),
   scanIntervalMs: document.querySelector("#scanIntervalMs"),
   scanDurationMs: document.querySelector("#scanDurationMs"),
-  defaultSiteAction: document.querySelector("#defaultSiteAction"),
-  siteRules: document.querySelector("#siteRules"),
+  sitesList: document.querySelector("#sitesList"),
+  newSite: document.querySelector("#newSite"),
   autoCloseSelectors: document.querySelector("#autoCloseSelectors"),
   escapeCloseSelectors: document.querySelector("#escapeCloseSelectors"),
   autoCloseText: document.querySelector("#autoCloseText"),
   escapeCloseText: document.querySelector("#escapeCloseText"),
   jsonConfig: document.querySelector("#jsonConfig"),
-  defaultSiteRules: document.querySelector("#defaultSiteRules"),
   currentSite: document.querySelector("#currentSite"),
-  currentSiteRule: document.querySelector("#currentSiteRule"),
 };
 
 const status = document.querySelector("#status");
 const form = document.querySelector("#config-form");
 const resetButton = document.querySelector("#reset");
-const restoreSiteRulesButton = document.querySelector("#restoreSiteRules");
-const runCurrentSiteButton = document.querySelector("#runCurrentSite");
-const skipCurrentSiteButton = document.querySelector("#skipCurrentSite");
-const defaultCurrentSiteButton = document.querySelector("#defaultCurrentSite");
+const restoreSitesButton = document.querySelector("#restoreSites");
+const addSiteButton = document.querySelector("#addSite");
+const toggleCurrentSiteButton = document.querySelector("#toggleCurrentSite");
 
 let defaultConfig = null;
 let currentHostname = "";
+let sites = [];
 let jsonChangedManually = false;
 
 function getStoredConfig() {
@@ -53,71 +51,38 @@ async function loadDefaultConfig() {
   return response.json();
 }
 
-function migrateSiteConfig(storedConfig) {
-  if (Array.isArray(storedConfig.siteRules)) {
-    return {
-      defaultSiteAction: ["run", "skip"].includes(storedConfig.defaultSiteAction)
-        ? storedConfig.defaultSiteAction
-        : defaultConfig.defaultSiteAction,
-      siteRules: storedConfig.siteRules,
-    };
+function configuredSites(storedConfig) {
+  if (Array.isArray(storedConfig.sites)) {
+    return storedConfig.sites;
   }
 
-  const allowSites = Array.isArray(storedConfig.allowSites) ? storedConfig.allowSites : [];
-  const blockSites = Array.isArray(storedConfig.blockSites) ? storedConfig.blockSites : [];
+  if (Array.isArray(storedConfig.siteRules)) {
+    const runSites = storedConfig.siteRules
+      .filter((rule) => rule?.action === "run" && typeof rule.site === "string")
+      .map((rule) => rule.site);
 
-  return {
-    defaultSiteAction: allowSites.length > 0 ? "skip" : defaultConfig.defaultSiteAction,
-    siteRules: [
-      ...allowSites.map((site) => ({ site, action: "run" })),
-      ...blockSites.map((site) => ({ site, action: "skip" })),
-    ],
-  };
+    return runSites.length > 0 ? runSites : defaultConfig.sites;
+  }
+
+  if (Array.isArray(storedConfig.allowSites) && storedConfig.allowSites.length > 0) {
+    return storedConfig.allowSites;
+  }
+
+  return defaultConfig.sites;
 }
 
 function mergeConfig(storedConfig) {
   const arrayOrDefault = (value, defaultValue) => Array.isArray(value) ? value : defaultValue;
-  const migratedSiteConfig = migrateSiteConfig(storedConfig);
 
   return {
     ...defaultConfig,
     ...storedConfig,
-    defaultSiteAction: migratedSiteConfig.defaultSiteAction,
-    siteRules: migratedSiteConfig.siteRules,
+    sites: configuredSites(storedConfig),
     autoCloseSelectors: arrayOrDefault(storedConfig.autoCloseSelectors, defaultConfig.autoCloseSelectors),
     escapeCloseSelectors: arrayOrDefault(storedConfig.escapeCloseSelectors, defaultConfig.escapeCloseSelectors),
     autoCloseText: arrayOrDefault(storedConfig.autoCloseText, defaultConfig.autoCloseText),
     escapeCloseText: arrayOrDefault(storedConfig.escapeCloseText, defaultConfig.escapeCloseText),
   };
-}
-
-function toLines(values) {
-  return (values || []).join("\n");
-}
-
-function fromLines(value) {
-  return value
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function rulesToLines(rules) {
-  return (rules || [])
-    .map((rule) => `${rule.action} ${rule.site}`)
-    .join("\n");
-}
-
-function rulesFromLines(value) {
-  return fromLines(value).map((line) => {
-    const [action, ...siteParts] = line.split(/\s+/);
-    const site = siteParts.join(" ");
-    return { action, site };
-  });
-}
-
-function describeRules(rules) {
-  return rules.length > 0 ? rulesToLines(rules).replace(/\n/g, ", ") : "no site-specific rules";
 }
 
 function normalizeHost(value) {
@@ -130,6 +95,43 @@ function normalizeHost(value) {
       .replace(/^https?:\/\//, "")
       .replace(/\/.*$/, "");
   }
+}
+
+function normalizeSite(value) {
+  const trimmed = String(value || "").trim().toLowerCase();
+
+  if (trimmed.startsWith("*.")) {
+    return `*.${normalizeHost(trimmed.slice(2))}`;
+  }
+
+  return normalizeHost(trimmed);
+}
+
+function sitePatternMatches(pattern, hostname) {
+  const normalizedPattern = normalizeSite(pattern);
+
+  if (!normalizedPattern) {
+    return false;
+  }
+
+  if (normalizedPattern === "*" || normalizedPattern === hostname) {
+    return true;
+  }
+
+  if (normalizedPattern.startsWith("*.")) {
+    const suffix = normalizedPattern.slice(2);
+    return hostname === suffix || hostname.endsWith(`.${suffix}`);
+  }
+
+  return hostname === normalizedPattern || hostname.endsWith(`.${normalizedPattern}`);
+}
+
+function uniqueSites(values) {
+  return [...new Set((values || []).map(normalizeSite).filter(Boolean))];
+}
+
+function hasCurrentSite() {
+  return sites.some((site) => sitePatternMatches(site, currentHostname));
 }
 
 function getActiveTabHostname() {
@@ -155,57 +157,15 @@ function getActiveTabHostname() {
   });
 }
 
-function matchingRuleForHost(rules, hostname) {
-  return rules.findLast((rule) => normalizeHost(rule.site) === hostname);
+function toLines(values) {
+  return (values || []).join("\n");
 }
 
-function withoutHostRule(rules, hostname) {
-  return rules.filter((rule) => normalizeHost(rule.site) !== hostname);
-}
-
-function setHostRule(action) {
-  const rules = withoutHostRule(rulesFromLines(fields.siteRules.value), currentHostname);
-  rules.push({ site: currentHostname, action });
-  fields.siteRules.value = rulesToLines(rules);
-  jsonChangedManually = false;
-  updateJsonFromForm();
-  updateCurrentSiteControls();
-}
-
-function useDefaultForHost() {
-  fields.siteRules.value = rulesToLines(withoutHostRule(rulesFromLines(fields.siteRules.value), currentHostname));
-  jsonChangedManually = false;
-  updateJsonFromForm();
-  updateCurrentSiteControls();
-}
-
-function updateJsonFromForm() {
-  if (!jsonChangedManually) {
-    const formConfig = readFormConfig();
-    fields.jsonConfig.value = JSON.stringify(formConfig, null, 2);
-  }
-}
-
-function updateCurrentSiteControls() {
-  const rules = rulesFromLines(fields.siteRules.value);
-  const rule = matchingRuleForHost(rules, currentHostname);
-  const hasCurrentSite = Boolean(currentHostname);
-  const defaultAction = fields.defaultSiteAction.value;
-  const effectiveAction = rule?.action || defaultAction;
-
-  fields.currentSite.textContent = hasCurrentSite ? currentHostname : "Unavailable";
-  runCurrentSiteButton.disabled = !hasCurrentSite || rule?.action === "run";
-  skipCurrentSiteButton.disabled = !hasCurrentSite || rule?.action === "skip";
-  defaultCurrentSiteButton.disabled = !hasCurrentSite || !rule;
-
-  if (!hasCurrentSite) {
-    fields.currentSiteRule.textContent = "Open this popup on an http or https page to manage the current site.";
-    return;
-  }
-
-  fields.currentSiteRule.textContent = rule
-    ? `Current site has a rule: ${rule.action}.`
-    : `Current site follows the default: ${effectiveAction}.`;
+function fromLines(value) {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 function showStatus(message) {
@@ -217,20 +177,134 @@ function showStatus(message) {
   }, 2400);
 }
 
+function syncJsonFromForm() {
+  if (!jsonChangedManually) {
+    fields.jsonConfig.value = JSON.stringify(readFormConfig(), null, 2);
+  }
+}
+
+function updateCurrentSiteButton() {
+  const hasSite = Boolean(currentHostname);
+
+  fields.currentSite.textContent = hasSite ? currentHostname : "Unavailable";
+  toggleCurrentSiteButton.disabled = !hasSite;
+  toggleCurrentSiteButton.textContent = hasCurrentSite() ? "Remove current site" : "Add current site";
+}
+
+function renderSites() {
+  fields.sitesList.textContent = "";
+
+  sites.forEach((site, index) => {
+    const row = document.createElement("div");
+    row.className = "site-row";
+
+    const value = document.createElement("span");
+    value.className = "site-value";
+    value.textContent = site;
+
+    const actions = document.createElement("div");
+    actions.className = "site-actions";
+
+    const edit = document.createElement("button");
+    edit.className = "icon";
+    edit.type = "button";
+    edit.title = "Edit site";
+    edit.setAttribute("aria-label", `Edit ${site}`);
+    edit.textContent = "✎";
+    edit.addEventListener("click", () => editSite(index));
+
+    const remove = document.createElement("button");
+    remove.className = "icon";
+    remove.type = "button";
+    remove.title = "Remove site";
+    remove.setAttribute("aria-label", `Remove ${site}`);
+    remove.textContent = "X";
+    remove.addEventListener("click", () => removeSite(index));
+
+    actions.append(edit, remove);
+    row.append(value, actions);
+    fields.sitesList.append(row);
+  });
+
+  updateCurrentSiteButton();
+}
+
+function commitSites(nextSites) {
+  sites = uniqueSites(nextSites);
+  jsonChangedManually = false;
+  renderSites();
+  syncJsonFromForm();
+}
+
+function addSite(value) {
+  const site = normalizeSite(value);
+
+  if (!site) {
+    showStatus("Enter a site first");
+    return;
+  }
+
+  commitSites([...sites, site]);
+  fields.newSite.value = "";
+}
+
+function removeSite(index) {
+  commitSites(sites.filter((_, siteIndex) => siteIndex !== index));
+}
+
+function editSite(index) {
+  const row = fields.sitesList.children[index];
+  const original = sites[index];
+  row.textContent = "";
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = original;
+
+  const actions = document.createElement("div");
+  actions.className = "site-actions";
+
+  const save = document.createElement("button");
+  save.className = "icon";
+  save.type = "button";
+  save.title = "Save site";
+  save.setAttribute("aria-label", `Save ${original}`);
+  save.textContent = "✓";
+  save.addEventListener("click", () => {
+    const nextSite = normalizeSite(input.value);
+    if (!nextSite) {
+      showStatus("Enter a site first");
+      return;
+    }
+    commitSites(sites.map((site, siteIndex) => siteIndex === index ? nextSite : site));
+  });
+
+  const cancel = document.createElement("button");
+  cancel.className = "icon";
+  cancel.type = "button";
+  cancel.title = "Cancel edit";
+  cancel.setAttribute("aria-label", `Cancel editing ${original}`);
+  cancel.textContent = "X";
+  cancel.addEventListener("click", renderSites);
+
+  actions.append(save, cancel);
+  row.append(input, actions);
+  input.focus();
+  input.select();
+}
+
 function render(config) {
   fields.enabled.checked = config.enabled;
   fields.scanIntervalMs.value = config.scanIntervalMs;
   fields.scanDurationMs.value = config.scanDurationMs;
-  fields.defaultSiteAction.value = config.defaultSiteAction;
-  fields.siteRules.value = rulesToLines(config.siteRules);
+  sites = uniqueSites(config.sites);
   fields.autoCloseSelectors.value = toLines(config.autoCloseSelectors);
   fields.escapeCloseSelectors.value = toLines(config.escapeCloseSelectors);
   fields.autoCloseText.value = toLines(config.autoCloseText);
   fields.escapeCloseText.value = toLines(config.escapeCloseText);
-  fields.defaultSiteRules.textContent = describeRules(defaultConfig.siteRules);
-  fields.jsonConfig.value = JSON.stringify(config, null, 2);
+  fields.jsonConfig.value = JSON.stringify(readFormConfig(), null, 2);
   jsonChangedManually = false;
-  updateCurrentSiteControls();
+  renderSites();
 }
 
 function readFormConfig() {
@@ -238,8 +312,7 @@ function readFormConfig() {
     enabled: fields.enabled.checked,
     scanIntervalMs: Number(fields.scanIntervalMs.value),
     scanDurationMs: Number(fields.scanDurationMs.value),
-    defaultSiteAction: fields.defaultSiteAction.value,
-    siteRules: rulesFromLines(fields.siteRules.value),
+    sites,
     autoCloseSelectors: fromLines(fields.autoCloseSelectors.value),
     escapeCloseSelectors: fromLines(fields.escapeCloseSelectors.value),
     autoCloseText: fromLines(fields.autoCloseText.value),
@@ -249,7 +322,7 @@ function readFormConfig() {
 
 function validateConfig(config) {
   const arrayFields = [
-    "siteRules",
+    "sites",
     "autoCloseSelectors",
     "escapeCloseSelectors",
     "autoCloseText",
@@ -258,10 +331,6 @@ function validateConfig(config) {
 
   if (typeof config.enabled !== "boolean") {
     throw new Error("Enabled must be true or false.");
-  }
-
-  if (!["run", "skip"].includes(config.defaultSiteAction)) {
-    throw new Error("Default site behavior must be run or skip.");
   }
 
   if (!Number.isFinite(config.scanIntervalMs) || config.scanIntervalMs < 50) {
@@ -273,24 +342,7 @@ function validateConfig(config) {
   }
 
   arrayFields.forEach((field) => {
-    if (!Array.isArray(config[field])) {
-      throw new Error(`${field} must be an array.`);
-    }
-  });
-
-  config.siteRules.forEach((rule) => {
-    if (!rule || !["run", "skip"].includes(rule.action) || typeof rule.site !== "string" || !rule.site.trim()) {
-      throw new Error("Site rules must use: run example.com or skip example.com.");
-    }
-  });
-
-  [
-    "autoCloseSelectors",
-    "escapeCloseSelectors",
-    "autoCloseText",
-    "escapeCloseText",
-  ].forEach((field) => {
-    if (!config[field].every((item) => typeof item === "string")) {
+    if (!Array.isArray(config[field]) || !config[field].every((item) => typeof item === "string")) {
       throw new Error(`${field} must be an array of strings.`);
     }
   });
@@ -307,16 +359,13 @@ async function init() {
   fields.enabled,
   fields.scanIntervalMs,
   fields.scanDurationMs,
-  fields.defaultSiteAction,
-  fields.siteRules,
   fields.autoCloseSelectors,
   fields.escapeCloseSelectors,
   fields.autoCloseText,
   fields.escapeCloseText,
 ].forEach((field) => {
   field.addEventListener("input", () => {
-    updateJsonFromForm();
-    updateCurrentSiteControls();
+    syncJsonFromForm();
   });
 });
 
@@ -324,23 +373,28 @@ fields.jsonConfig.addEventListener("input", () => {
   jsonChangedManually = true;
 });
 
-restoreSiteRulesButton.addEventListener("click", () => {
-  fields.siteRules.value = rulesToLines(defaultConfig.siteRules);
-  jsonChangedManually = false;
-  fields.siteRules.dispatchEvent(new Event("input", { bubbles: true }));
-  showStatus("Site rules restored");
+restoreSitesButton.addEventListener("click", () => {
+  commitSites(defaultConfig.sites);
+  showStatus("Sites restored");
 });
 
-runCurrentSiteButton.addEventListener("click", () => {
-  setHostRule("run");
+addSiteButton.addEventListener("click", () => {
+  addSite(fields.newSite.value);
 });
 
-skipCurrentSiteButton.addEventListener("click", () => {
-  setHostRule("skip");
+fields.newSite.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    addSite(fields.newSite.value);
+  }
 });
 
-defaultCurrentSiteButton.addEventListener("click", () => {
-  useDefaultForHost();
+toggleCurrentSiteButton.addEventListener("click", () => {
+  if (hasCurrentSite()) {
+    commitSites(sites.filter((site) => !sitePatternMatches(site, currentHostname)));
+  } else {
+    commitSites([...sites, currentHostname]);
+  }
 });
 
 form.addEventListener("submit", async (event) => {
@@ -352,6 +406,7 @@ form.addEventListener("submit", async (event) => {
       : readFormConfig();
 
     validateConfig(config);
+    config.sites = uniqueSites(config.sites);
     await setStoredConfig(config);
     render(mergeConfig(config));
     showStatus("Saved");

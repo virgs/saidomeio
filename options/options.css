@@ -104,14 +104,13 @@ label {
 }
 
 input,
-select,
 textarea,
 button {
   font: inherit;
 }
 
 input[type="number"],
-select,
+input[type="text"],
 textarea {
   box-sizing: border-box;
   width: 100%;
@@ -122,9 +121,41 @@ textarea {
 }
 
 input[type="number"],
-select {
+input[type="text"] {
   min-height: 36px;
   padding: 6px 8px;
+}
+
+.sites-list {
+  display: grid;
+  gap: 6px;
+}
+
+.site-row,
+.add-site-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.site-row {
+  min-height: 36px;
+  border: 1px solid #c9c0b2;
+  border-radius: 6px;
+  padding: 4px 4px 4px 10px;
+  background: #fffdf8;
+}
+
+.site-value {
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.site-actions {
+  display: flex;
+  gap: 4px;
 }
 
 textarea {
@@ -195,6 +226,13 @@ button.small {
   font-size: 12px;
 }
 
+button.icon {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 4px;
+  line-height: 1;
+}
+
 @media (max-width: 560px) {
   .grid {
     grid-template-columns: 1fr;
@@ -215,7 +253,7 @@ button.small {
   }
 
   input[type="number"],
-  select,
+  input[type="text"],
   textarea {
     border-color: #4c4238;
     color: #f4eee2;
@@ -225,6 +263,11 @@ button.small {
   .current-site {
     border-color: #4c4238;
     background: #211c17;
+  }
+
+  .site-row {
+    border-color: #4c4238;
+    background: #221e19;
   }
 
   button {

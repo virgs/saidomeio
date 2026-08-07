@@ -25,14 +25,14 @@ It is useful for prompts like:
 
 ## Features
 
-- Runs on all URLs by default.
-- One site-rules list for domain-specific run/skip behavior.
+- Runs only on configured sites.
+- One editable site list.
 - Configurable scan interval and scan duration.
 - Configurable CSS selectors for automatic dismissal.
 - Configurable text matches for automatic dismissal.
 - Configurable CSS selectors and text matches for `Escape`.
 - Browser UI for normal edits.
-- One-click current-site run/skip controls from the popup.
+- One-click current-site add/remove control from the popup.
 - JSON override editor for advanced edits.
 - Default config checked into the repo.
 
@@ -50,30 +50,22 @@ Defaults live in [config.default.json](config.default.json).
 
 User overrides are saved with `chrome.storage.sync` from the extension popup or Options page. The options UI exposes the same core fields as the JSON config.
 
-### Site Rules
+### Sites
 
-`defaultSiteAction` controls what happens when no site-specific rule matches.
-
-```json
-{
-  "defaultSiteAction": "run"
-}
-```
-
-Use `run` to enable saidomeio by default, or `skip` to keep it off unless a rule opts a site in.
-
-`siteRules` is the single list for site-specific behavior:
+`sites` controls where saidomeio runs. If a site is not listed, the content script exits without doing anything.
 
 ```json
 {
-  "siteRules": [
-    { "site": "g1.globo.com", "action": "run" },
-    { "site": "*.example.com", "action": "skip" }
+  "sites": [
+    "ge.globo.com",
+    "g1.globo.com",
+    "dailyhive.com",
+    "omelete.com.br"
   ]
 }
 ```
 
-The popup detects the current tab's domain and lets you set it to `run`, set it to `skip`, or remove its rule so it follows the default. This uses Chrome's `activeTab` permission only when you open the extension popup.
+The popup detects the current tab's domain and lets you add or remove that domain from the list. This uses Chrome's `activeTab` permission only when you open the extension popup.
 
 Examples:
 
@@ -126,13 +118,13 @@ saidomeio/
 
 `saidomeio` does not send browsing data anywhere. Configuration is stored by the browser using `chrome.storage.sync`.
 
-Because the extension can run on all URLs, browsers may show broad site-access warnings. Set `defaultSiteAction` to `skip` and add `run` rules if you prefer a narrower scope.
+Because the extension declares `<all_urls>`, browsers may show broad site-access warnings. Runtime behavior is still limited to the configured `sites` list.
 
 The site model is intentionally one list:
 
-- `defaultSiteAction: "run"` means saidomeio runs almost everywhere, except `skip` rules.
-- `defaultSiteAction: "skip"` means saidomeio only runs where a `run` rule matches.
-- If multiple rules match, the later matching rule wins.
+- Add a site when saidomeio should run there.
+- Remove a site when saidomeio should not run there.
+- No separate allow/block policy exists.
 
 ## Name
 

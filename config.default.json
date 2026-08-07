@@ -2,8 +2,12 @@
   "enabled": true,
   "scanIntervalMs": 250,
   "scanDurationMs": 15000,
-  "defaultSiteAction": "run",
-  "siteRules": [],
+  "sites": [
+    "ge.globo.com",
+    "g1.globo.com",
+    "dailyhive.com",
+    "omelete.com.br"
+  ],
   "autoCloseSelectors": [
     ".fc-close.fc-icon-button",
     ".fc-close",

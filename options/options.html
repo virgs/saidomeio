@@ -30,11 +30,8 @@
             <code id="currentSite">Unavailable</code>
           </div>
           <div class="actions">
-            <button id="runCurrentSite" class="small" type="button" disabled>Run here</button>
-            <button id="skipCurrentSite" class="small" type="button" disabled>Skip here</button>
-            <button id="defaultCurrentSite" class="small" type="button" disabled>Use default</button>
+            <button id="toggleCurrentSite" class="small" type="button" disabled>Add current site</button>
           </div>
-          <p class="hint" id="currentSiteRule">Current site follows the default behavior.</p>
         </section>
 
         <section class="grid">
@@ -48,29 +45,17 @@
           </label>
         </section>
 
-        <section class="grid">
-          <label>
-            <span>Default site behavior</span>
-            <select id="defaultSiteAction">
-              <option value="run">Run on sites by default</option>
-              <option value="skip">Skip sites by default</option>
-            </select>
-          </label>
-        </section>
-
         <section>
           <div class="section-title">
-            <span>Site rules</span>
-            <button id="restoreSiteRules" class="small" type="button">Use default</button>
+            <span>Sites</span>
+            <button id="restoreSites" class="small" type="button">Use default</button>
           </div>
-          <label>
-            <textarea id="siteRules" spellcheck="false" placeholder="Default: no site-specific rules. Example:&#10;run g1.globo.com&#10;skip example.com"></textarea>
-          </label>
-          <div class="default-list">
-            <strong>Default:</strong>
-            <code id="defaultSiteRules"></code>
+          <div id="sitesList" class="sites-list"></div>
+          <div class="add-site-row">
+            <input id="newSite" type="text" placeholder="example.com">
+            <button id="addSite" class="small" type="button">Add site</button>
           </div>
-          <p class="hint">Use one rule per line: <code>run g1.globo.com</code>, <code>skip *.example.com</code>. Later matching rules win.</p>
+          <p class="hint">saidomeio only runs on listed sites. Use domains such as <code>g1.globo.com</code>, <code>*.globo.com</code>, or <code>dailyhive.com</code>.</p>
         </section>
 
         <section>

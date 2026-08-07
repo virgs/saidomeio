@@ -21,13 +21,11 @@ function getStoredConfig() {
 
 function mergeConfig(defaultConfig, storedConfig) {
   const arrayOrDefault = (value, defaultValue) => Array.isArray(value) ? value : defaultValue;
-  const migratedSiteConfig = migrateSiteConfig(storedConfig, defaultConfig);
 
   return {
     ...defaultConfig,
     ...storedConfig,
-    defaultSiteAction: migratedSiteConfig.defaultSiteAction,
-    siteRules: migratedSiteConfig.siteRules,
+    sites: getConfiguredSites(storedConfig, defaultConfig),
     autoCloseSelectors: arrayOrDefault(storedConfig.autoCloseSelectors, defaultConfig.autoCloseSelectors),
     escapeCloseSelectors: arrayOrDefault(storedConfig.escapeCloseSelectors, defaultConfig.escapeCloseSelectors),
     autoCloseText: arrayOrDefault(storedConfig.autoCloseText, defaultConfig.autoCloseText),
@@ -35,26 +33,24 @@ function mergeConfig(defaultConfig, storedConfig) {
   };
 }
 
-function migrateSiteConfig(storedConfig, defaultConfig) {
-  if (Array.isArray(storedConfig.siteRules)) {
-    return {
-      defaultSiteAction: ["run", "skip"].includes(storedConfig.defaultSiteAction)
-        ? storedConfig.defaultSiteAction
-        : defaultConfig.defaultSiteAction,
-      siteRules: storedConfig.siteRules,
-    };
+function getConfiguredSites(storedConfig, defaultConfig) {
+  if (Array.isArray(storedConfig.sites)) {
+    return storedConfig.sites;
   }
 
-  const allowSites = Array.isArray(storedConfig.allowSites) ? storedConfig.allowSites : [];
-  const blockSites = Array.isArray(storedConfig.blockSites) ? storedConfig.blockSites : [];
+  if (Array.isArray(storedConfig.siteRules)) {
+    const runSites = storedConfig.siteRules
+      .filter((rule) => rule?.action === "run" && typeof rule.site === "string")
+      .map((rule) => rule.site);
 
-  return {
-    defaultSiteAction: allowSites.length > 0 ? "skip" : defaultConfig.defaultSiteAction,
-    siteRules: [
-      ...allowSites.map((site) => ({ site, action: "run" })),
-      ...blockSites.map((site) => ({ site, action: "skip" })),
-    ],
-  };
+    return runSites.length > 0 ? runSites : defaultConfig.sites;
+  }
+
+  if (Array.isArray(storedConfig.allowSites) && storedConfig.allowSites.length > 0) {
+    return storedConfig.allowSites;
+  }
+
+  return defaultConfig.sites;
 }
 
 function normalizeText(value) {
@@ -103,15 +99,8 @@ function shouldRunOnCurrentSite(currentConfig) {
   }
 
   const hostname = window.location.hostname.toLowerCase();
-  let siteAction = currentConfig.defaultSiteAction === "skip" ? "skip" : "run";
 
-  (currentConfig.siteRules || []).forEach((rule) => {
-    if (rule && sitePatternMatches(rule.site, hostname) && ["run", "skip"].includes(rule.action)) {
-      siteAction = rule.action;
-    }
-  });
-
-  return siteAction === "run";
+  return (currentConfig.sites || []).some((site) => sitePatternMatches(site, hostname));
 }
 
 function getAutoCloseSelectors() {
