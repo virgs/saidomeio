@@ -104,12 +104,14 @@ label {
 }
 
 input,
+select,
 textarea,
 button {
   font: inherit;
 }
 
 input[type="number"],
+select,
 textarea {
   box-sizing: border-box;
   width: 100%;
@@ -119,7 +121,8 @@ textarea {
   background: #fffdf8;
 }
 
-input[type="number"] {
+input[type="number"],
+select {
   min-height: 36px;
   padding: 6px 8px;
 }
@@ -212,6 +215,7 @@ button.small {
   }
 
   input[type="number"],
+  select,
   textarea {
     border-color: #4c4238;
     color: #f4eee2;

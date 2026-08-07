@@ -2,8 +2,8 @@
   "enabled": true,
   "scanIntervalMs": 250,
   "scanDurationMs": 15000,
-  "allowSites": [],
-  "blockSites": [],
+  "defaultSiteAction": "run",
+  "siteRules": [],
   "autoCloseSelectors": [
     ".fc-close.fc-icon-button",
     ".fc-close",

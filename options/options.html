@@ -30,10 +30,11 @@
             <code id="currentSite">Unavailable</code>
           </div>
           <div class="actions">
-            <button id="toggleAllowCurrentSite" class="small" type="button" disabled>Add to allow list</button>
-            <button id="toggleBlockCurrentSite" class="small" type="button" disabled>Add to block list</button>
+            <button id="runCurrentSite" class="small" type="button" disabled>Run here</button>
+            <button id="skipCurrentSite" class="small" type="button" disabled>Skip here</button>
+            <button id="defaultCurrentSite" class="small" type="button" disabled>Use default</button>
           </div>
-          <p class="hint">Adding a site to the allow list makes saidomeio run only on allowed sites. The block list always wins.</p>
+          <p class="hint" id="currentSiteRule">Current site follows the default behavior.</p>
         </section>
 
         <section class="grid">
@@ -47,33 +48,29 @@
           </label>
         </section>
 
-        <section>
-          <div class="section-title">
-            <span>Allow sites</span>
-            <button id="restoreAllowSites" class="small" type="button">Use default</button>
-          </div>
+        <section class="grid">
           <label>
-            <textarea id="allowSites" spellcheck="false" placeholder="Default: all sites. Leave empty to allow every site."></textarea>
+            <span>Default site behavior</span>
+            <select id="defaultSiteAction">
+              <option value="run">Run on sites by default</option>
+              <option value="skip">Skip sites by default</option>
+            </select>
           </label>
-          <div class="default-list">
-            <strong>Default:</strong>
-            <code id="defaultAllowSites"></code>
-          </div>
-          <p class="hint">Empty means all sites. Use one per line, such as <code>g1.globo.com</code>, <code>*.globo.com</code>, or <code>dailyhive.com</code>.</p>
         </section>
 
         <section>
           <div class="section-title">
-            <span>Block sites</span>
-            <button id="restoreBlockSites" class="small" type="button">Use default</button>
+            <span>Site rules</span>
+            <button id="restoreSiteRules" class="small" type="button">Use default</button>
           </div>
           <label>
-            <textarea id="blockSites" spellcheck="false" placeholder="Default: none. Leave empty to block no sites."></textarea>
+            <textarea id="siteRules" spellcheck="false" placeholder="Default: no site-specific rules. Example:&#10;run g1.globo.com&#10;skip example.com"></textarea>
           </label>
           <div class="default-list">
             <strong>Default:</strong>
-            <code id="defaultBlockSites"></code>
+            <code id="defaultSiteRules"></code>
           </div>
+          <p class="hint">Use one rule per line: <code>run g1.globo.com</code>, <code>skip *.example.com</code>. Later matching rules win.</p>
         </section>
 
         <section>

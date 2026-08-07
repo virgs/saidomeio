@@ -21,16 +21,39 @@ function getStoredConfig() {
 
 function mergeConfig(defaultConfig, storedConfig) {
   const arrayOrDefault = (value, defaultValue) => Array.isArray(value) ? value : defaultValue;
+  const migratedSiteConfig = migrateSiteConfig(storedConfig, defaultConfig);
 
   return {
     ...defaultConfig,
     ...storedConfig,
+    defaultSiteAction: migratedSiteConfig.defaultSiteAction,
+    siteRules: migratedSiteConfig.siteRules,
     autoCloseSelectors: arrayOrDefault(storedConfig.autoCloseSelectors, defaultConfig.autoCloseSelectors),
     escapeCloseSelectors: arrayOrDefault(storedConfig.escapeCloseSelectors, defaultConfig.escapeCloseSelectors),
     autoCloseText: arrayOrDefault(storedConfig.autoCloseText, defaultConfig.autoCloseText),
     escapeCloseText: arrayOrDefault(storedConfig.escapeCloseText, defaultConfig.escapeCloseText),
-    allowSites: arrayOrDefault(storedConfig.allowSites, defaultConfig.allowSites),
-    blockSites: arrayOrDefault(storedConfig.blockSites, defaultConfig.blockSites),
+  };
+}
+
+function migrateSiteConfig(storedConfig, defaultConfig) {
+  if (Array.isArray(storedConfig.siteRules)) {
+    return {
+      defaultSiteAction: ["run", "skip"].includes(storedConfig.defaultSiteAction)
+        ? storedConfig.defaultSiteAction
+        : defaultConfig.defaultSiteAction,
+      siteRules: storedConfig.siteRules,
+    };
+  }
+
+  const allowSites = Array.isArray(storedConfig.allowSites) ? storedConfig.allowSites : [];
+  const blockSites = Array.isArray(storedConfig.blockSites) ? storedConfig.blockSites : [];
+
+  return {
+    defaultSiteAction: allowSites.length > 0 ? "skip" : defaultConfig.defaultSiteAction,
+    siteRules: [
+      ...allowSites.map((site) => ({ site, action: "run" })),
+      ...blockSites.map((site) => ({ site, action: "skip" })),
+    ],
   };
 }
 
@@ -80,14 +103,15 @@ function shouldRunOnCurrentSite(currentConfig) {
   }
 
   const hostname = window.location.hostname.toLowerCase();
-  const allowSites = currentConfig.allowSites || [];
-  const blockSites = currentConfig.blockSites || [];
+  let siteAction = currentConfig.defaultSiteAction === "skip" ? "skip" : "run";
 
-  if (blockSites.some((site) => sitePatternMatches(site, hostname))) {
-    return false;
-  }
+  (currentConfig.siteRules || []).forEach((rule) => {
+    if (rule && sitePatternMatches(rule.site, hostname) && ["run", "skip"].includes(rule.action)) {
+      siteAction = rule.action;
+    }
+  });
 
-  return allowSites.length === 0 || allowSites.some((site) => sitePatternMatches(site, hostname));
+  return siteAction === "run";
 }
 
 function getAutoCloseSelectors() {
