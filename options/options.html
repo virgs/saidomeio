@@ -36,18 +36,32 @@
         </section>
 
         <section>
-          <label>
+          <div class="section-title">
             <span>Allow sites</span>
+            <button id="restoreAllowSites" class="small" type="button">Use default</button>
+          </div>
+          <label>
             <textarea id="allowSites" spellcheck="false"></textarea>
           </label>
+          <div class="default-list">
+            <strong>Default:</strong>
+            <code id="defaultAllowSites"></code>
+          </div>
           <p class="hint">Empty means all sites. Use one per line, such as <code>g1.globo.com</code>, <code>*.globo.com</code>, or <code>dailyhive.com</code>.</p>
         </section>
 
         <section>
-          <label>
+          <div class="section-title">
             <span>Block sites</span>
+            <button id="restoreBlockSites" class="small" type="button">Use default</button>
+          </div>
+          <label>
             <textarea id="blockSites" spellcheck="false"></textarea>
           </label>
+          <div class="default-list">
+            <strong>Default:</strong>
+            <code id="defaultBlockSites"></code>
+          </div>
         </section>
 
         <section>

@@ -11,11 +11,15 @@ const fields = {
   autoCloseText: document.querySelector("#autoCloseText"),
   escapeCloseText: document.querySelector("#escapeCloseText"),
   jsonConfig: document.querySelector("#jsonConfig"),
+  defaultAllowSites: document.querySelector("#defaultAllowSites"),
+  defaultBlockSites: document.querySelector("#defaultBlockSites"),
 };
 
 const status = document.querySelector("#status");
 const form = document.querySelector("#config-form");
 const resetButton = document.querySelector("#reset");
+const restoreAllowSitesButton = document.querySelector("#restoreAllowSites");
+const restoreBlockSitesButton = document.querySelector("#restoreBlockSites");
 
 let defaultConfig = null;
 let jsonChangedManually = false;
@@ -64,6 +68,10 @@ function toLines(values) {
   return (values || []).join("\n");
 }
 
+function describeSiteList(values, emptyLabel) {
+  return values.length > 0 ? values.join(", ") : emptyLabel;
+}
+
 function fromLines(value) {
   return value
     .split("\n")
@@ -90,6 +98,8 @@ function render(config) {
   fields.escapeCloseSelectors.value = toLines(config.escapeCloseSelectors);
   fields.autoCloseText.value = toLines(config.autoCloseText);
   fields.escapeCloseText.value = toLines(config.escapeCloseText);
+  fields.defaultAllowSites.textContent = describeSiteList(defaultConfig.allowSites, "all sites");
+  fields.defaultBlockSites.textContent = describeSiteList(defaultConfig.blockSites, "none");
   fields.jsonConfig.value = JSON.stringify(config, null, 2);
   jsonChangedManually = false;
 }
@@ -164,6 +174,18 @@ async function init() {
 
 fields.jsonConfig.addEventListener("input", () => {
   jsonChangedManually = true;
+});
+
+restoreAllowSitesButton.addEventListener("click", () => {
+  fields.allowSites.value = toLines(defaultConfig.allowSites);
+  fields.allowSites.dispatchEvent(new Event("input", { bubbles: true }));
+  showStatus("Allow list restored");
+});
+
+restoreBlockSitesButton.addEventListener("click", () => {
+  fields.blockSites.value = toLines(defaultConfig.blockSites);
+  fields.blockSites.dispatchEvent(new Event("input", { bubbles: true }));
+  showStatus("Block list restored");
 });
 
 form.addEventListener("submit", async (event) => {

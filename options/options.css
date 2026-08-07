@@ -66,6 +66,14 @@ label {
   font-weight: 650;
 }
 
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 650;
+}
+
 .check {
   display: flex;
   align-items: center;
@@ -111,6 +119,16 @@ textarea {
   line-height: 1.4;
 }
 
+.default-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: baseline;
+  color: #5d574f;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
@@ -138,6 +156,12 @@ button#reset {
   background: transparent;
 }
 
+button.small {
+  min-height: 28px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
 @media (max-width: 560px) {
   .grid {
     grid-template-columns: 1fr;
@@ -152,6 +176,7 @@ button#reset {
 
   header p,
   .hint,
+  .default-list,
   #status {
     color: #b8aa99;
   }
