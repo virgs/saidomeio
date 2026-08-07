@@ -36,6 +36,18 @@ const ESCAPE_CLOSE_SELECTORS = [
   "a[href]",
 ];
 
+const AUTO_CLOSE_TEXT = [
+  "agora nao",
+  "nao obrigado",
+  "no thanks",
+  "not now",
+  "maybe later",
+  "talvez mais tarde",
+  "mais tarde",
+  "dispensar",
+  "dismiss",
+];
+
 const CLOSE_TEXT = [
   "close",
   "dismiss",
@@ -46,7 +58,9 @@ const CLOSE_TEXT = [
   "fechar",
   "dispensar",
   "agora nao",
+  "nao obrigado",
   "talvez mais tarde",
+  "mais tarde",
   "recusar",
   "reject",
   "decline",
@@ -103,6 +117,11 @@ function matchesCloseText(element) {
   return CLOSE_TEXT.some((closeText) => text.includes(closeText));
 }
 
+function matchesAutoCloseText(element) {
+  const text = getElementText(element);
+  return AUTO_CLOSE_TEXT.some((closeText) => text.includes(closeText));
+}
+
 function queryAllInRoot(root, selectors) {
   const elements = [];
 
@@ -139,6 +158,15 @@ function autoClose() {
 
   for (const element of candidates) {
     if (clickElement(element, "auto selector")) {
+      return true;
+    }
+  }
+
+  const textCandidates = queryAllInRoot(document, ESCAPE_CLOSE_SELECTORS)
+    .filter((element) => isVisible(element) && matchesAutoCloseText(element));
+
+  for (const element of textCandidates) {
+    if (clickElement(element, "auto text")) {
       return true;
     }
   }
