@@ -33,7 +33,6 @@ It is useful for prompts like:
 - Configurable CSS selectors and text matches for `Escape`.
 - Browser UI for normal edits.
 - One-click current-site add/remove control from the popup.
-- JSON override editor for advanced edits.
 - Default config checked into the repo.
 
 ## Install locally

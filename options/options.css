@@ -167,10 +167,6 @@ textarea {
   line-height: 1.45;
 }
 
-#jsonConfig {
-  min-height: 160px;
-}
-
 .hint {
   font-size: 12px;
   line-height: 1.4;

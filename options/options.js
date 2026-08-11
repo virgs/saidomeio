@@ -10,7 +10,6 @@ const fields = {
   escapeCloseSelectors: document.querySelector("#escapeCloseSelectors"),
   autoCloseText: document.querySelector("#autoCloseText"),
   escapeCloseText: document.querySelector("#escapeCloseText"),
-  jsonConfig: document.querySelector("#jsonConfig"),
   currentSite: document.querySelector("#currentSite"),
 };
 
@@ -24,7 +23,6 @@ const toggleCurrentSiteButton = document.querySelector("#toggleCurrentSite");
 let defaultConfig = null;
 let currentHostname = "";
 let sites = [];
-let jsonChangedManually = false;
 
 function getStoredConfig() {
   return new Promise((resolve) => {
@@ -177,12 +175,6 @@ function showStatus(message) {
   }, 2400);
 }
 
-function syncJsonFromForm() {
-  if (!jsonChangedManually) {
-    fields.jsonConfig.value = JSON.stringify(readFormConfig(), null, 2);
-  }
-}
-
 function updateCurrentSiteButton() {
   const hasSite = Boolean(currentHostname);
 
@@ -231,9 +223,7 @@ function renderSites() {
 
 function commitSites(nextSites) {
   sites = uniqueSites(nextSites);
-  jsonChangedManually = false;
   renderSites();
-  syncJsonFromForm();
 }
 
 function addSite(value) {
@@ -302,8 +292,6 @@ function render(config) {
   fields.escapeCloseSelectors.value = toLines(config.escapeCloseSelectors);
   fields.autoCloseText.value = toLines(config.autoCloseText);
   fields.escapeCloseText.value = toLines(config.escapeCloseText);
-  fields.jsonConfig.value = JSON.stringify(readFormConfig(), null, 2);
-  jsonChangedManually = false;
   renderSites();
 }
 
@@ -355,24 +343,6 @@ async function init() {
   render(mergeConfig(storedConfig));
 }
 
-[
-  fields.enabled,
-  fields.scanIntervalMs,
-  fields.scanDurationMs,
-  fields.autoCloseSelectors,
-  fields.escapeCloseSelectors,
-  fields.autoCloseText,
-  fields.escapeCloseText,
-].forEach((field) => {
-  field.addEventListener("input", () => {
-    syncJsonFromForm();
-  });
-});
-
-fields.jsonConfig.addEventListener("input", () => {
-  jsonChangedManually = true;
-});
-
 restoreSitesButton.addEventListener("click", () => {
   commitSites(defaultConfig.sites);
   showStatus("Sites restored");
@@ -401,10 +371,7 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   try {
-    const config = jsonChangedManually
-      ? JSON.parse(fields.jsonConfig.value)
-      : readFormConfig();
-
+    const config = readFormConfig();
     validateConfig(config);
     config.sites = uniqueSites(config.sites);
     await setStoredConfig(config);
