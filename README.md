@@ -106,12 +106,42 @@ Text is normalized before matching, so accents and case are not significant.
 ```text
 saidomeio/
   config.default.json      Default extension behavior
-  content.js               Page-level dismissal logic
+  content.js               Page-level scanner and lifecycle
+  content/                 Content-script helpers
   manifest.json            Chrome extension manifest
   options/                 Popup and Options UI
+  tests/                   Node unit tests for shared helper logic
   icons/                   Extension icons and transparent source
   docs/icon-prompt.md      Approved icon generation prompt
 ```
+
+## Tests
+
+Run the dependency-free unit tests with Node:
+
+```sh
+node --test tests/shared.test.js
+```
+
+Run the same lightweight validation used for content-script changes:
+
+```sh
+node --check content/shared.js
+node --check content/dom.js
+node --check content/badge.js
+node --check content.js
+node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8')); JSON.parse(require('fs').readFileSync('config.default.json','utf8'))"
+git diff --check
+```
+
+For a manual browser smoke test:
+
+1. Open `chrome://extensions`.
+2. Reload the unpacked `saidomeio` extension.
+3. Visit a configured site such as `dailyhive.com`.
+4. Confirm known dismissible popups are removed automatically.
+5. Press `Escape` on a normal page control and confirm the page keeps its own behavior.
+6. Press `Escape` while a visible modal/popup is open and confirm only that popup is dismissed.
 
 ## Privacy
 

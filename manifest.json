@@ -34,6 +34,9 @@
                 "<all_urls>"
             ],
             "js": [
+                "content/shared.js",
+                "content/dom.js",
+                "content/badge.js",
                 "content.js"
             ],
             "run_at": "document_idle"
