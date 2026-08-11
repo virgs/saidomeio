@@ -4,6 +4,8 @@ const fields = {
   enabled: document.querySelector("#enabled"),
   scanIntervalMs: document.querySelector("#scanIntervalMs"),
   scanDurationMs: document.querySelector("#scanDurationMs"),
+  badgeSizePx: document.querySelector("#badgeSizePx"),
+  badgeDurationMs: document.querySelector("#badgeDurationMs"),
   sitesList: document.querySelector("#sitesList"),
   newSite: document.querySelector("#newSite"),
   autoCloseSelectors: document.querySelector("#autoCloseSelectors"),
@@ -71,10 +73,15 @@ function configuredSites(storedConfig) {
 
 function mergeConfig(storedConfig) {
   const arrayOrDefault = (value, defaultValue) => Array.isArray(value) ? value : defaultValue;
+  const numberOrDefault = (value, defaultValue) => Number.isFinite(value) ? value : defaultValue;
 
   return {
     ...defaultConfig,
     ...storedConfig,
+    scanIntervalMs: numberOrDefault(storedConfig.scanIntervalMs, defaultConfig.scanIntervalMs),
+    scanDurationMs: numberOrDefault(storedConfig.scanDurationMs, defaultConfig.scanDurationMs),
+    badgeSizePx: numberOrDefault(storedConfig.badgeSizePx, defaultConfig.badgeSizePx),
+    badgeDurationMs: numberOrDefault(storedConfig.badgeDurationMs, defaultConfig.badgeDurationMs),
     sites: configuredSites(storedConfig),
     autoCloseSelectors: arrayOrDefault(storedConfig.autoCloseSelectors, defaultConfig.autoCloseSelectors),
     escapeCloseSelectors: arrayOrDefault(storedConfig.escapeCloseSelectors, defaultConfig.escapeCloseSelectors),
@@ -287,6 +294,8 @@ function render(config) {
   fields.enabled.checked = config.enabled;
   fields.scanIntervalMs.value = config.scanIntervalMs;
   fields.scanDurationMs.value = config.scanDurationMs;
+  fields.badgeSizePx.value = config.badgeSizePx;
+  fields.badgeDurationMs.value = config.badgeDurationMs;
   sites = uniqueSites(config.sites);
   fields.autoCloseSelectors.value = toLines(config.autoCloseSelectors);
   fields.escapeCloseSelectors.value = toLines(config.escapeCloseSelectors);
@@ -300,6 +309,8 @@ function readFormConfig() {
     enabled: fields.enabled.checked,
     scanIntervalMs: Number(fields.scanIntervalMs.value),
     scanDurationMs: Number(fields.scanDurationMs.value),
+    badgeSizePx: Number(fields.badgeSizePx.value),
+    badgeDurationMs: Number(fields.badgeDurationMs.value),
     sites,
     autoCloseSelectors: fromLines(fields.autoCloseSelectors.value),
     escapeCloseSelectors: fromLines(fields.escapeCloseSelectors.value),
@@ -327,6 +338,14 @@ function validateConfig(config) {
 
   if (!Number.isFinite(config.scanDurationMs) || config.scanDurationMs < 1000) {
     throw new Error("Scan duration must be at least 1000 ms.");
+  }
+
+  if (!Number.isFinite(config.badgeSizePx) || config.badgeSizePx < 16) {
+    throw new Error("Badge size must be at least 16 px.");
+  }
+
+  if (!Number.isFinite(config.badgeDurationMs) || config.badgeDurationMs < 250) {
+    throw new Error("Badge duration must be at least 250 ms.");
   }
 
   arrayFields.forEach((field) => {

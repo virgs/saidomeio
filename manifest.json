@@ -25,6 +25,9 @@
         "page": "options/options.html",
         "open_in_tab": true
     },
+    "background": {
+        "service_worker": "background.js"
+    },
     "content_scripts": [
         {
             "matches": [
@@ -39,7 +42,8 @@
     "web_accessible_resources": [
         {
             "resources": [
-                "config.default.json"
+                "config.default.json",
+                "icons/icon48.png"
             ],
             "matches": [
                 "<all_urls>"
