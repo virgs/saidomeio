@@ -16,6 +16,8 @@
 
 `saidomeio` watches the page for common close, dismiss, reject, and "not now" controls. It can click high-confidence matches automatically and can also use `Escape` as a manual fallback for similar visible controls.
 
+On configured sites, it can also block common muted HTML5 autoplay videos. `Escape` pauses matching videos and removes small floating video players when they detach into the viewport corner.
+
 It is useful for prompts like:
 
 - notification pre-prompts such as "Agora nao", "Not now", and "No thanks"
@@ -31,8 +33,10 @@ It is useful for prompts like:
 - Configurable CSS selectors for automatic dismissal.
 - Configurable text matches for automatic dismissal.
 - Configurable CSS selectors and text matches for `Escape`.
+- Configurable CSS selectors for autoplay video blocking.
 - Browser UI for normal edits.
 - One-click current-site add/remove control from the popup.
+- Optional blocking for muted HTML5 autoplay videos.
 - Default config checked into the repo.
 
 ## Install locally
@@ -85,6 +89,23 @@ omelete.com.br
 ```
 
 The extension scans frequently for a short period after page load and resumes scanning when the DOM changes.
+
+### Autoplay Videos
+
+```json
+{
+  "blockAutoplayVideos": true,
+  "autoplayVideoSelectors": [
+    "video[data-html5-video]",
+    ".id-playback video",
+    ".clappr-player video",
+    "video[autoplay]",
+    "video[muted][playsinline]"
+  ]
+}
+```
+
+When enabled, videos matching `autoplayVideoSelectors` have autoplay disabled and script-started playback is paused unless the user recently interacted with the video or its player controls. Pressing `Escape` also pauses matching videos and closes small floating player containers.
 
 ### Selectors And Text
 

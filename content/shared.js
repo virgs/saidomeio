@@ -59,7 +59,13 @@ globalThis.SaidomeioShared = (() => {
       scanDurationMs: numberOrDefault(storedConfig.scanDurationMs, defaultConfig.scanDurationMs),
       badgeSizePx: numberOrDefault(storedConfig.badgeSizePx, defaultConfig.badgeSizePx),
       badgeDurationMs: numberOrDefault(storedConfig.badgeDurationMs, defaultConfig.badgeDurationMs),
+      blockAutoplayVideos:
+        typeof storedConfig.blockAutoplayVideos === "boolean"
+          ? storedConfig.blockAutoplayVideos
+          : defaultConfig.blockAutoplayVideos,
       sites: getConfiguredSites(storedConfig, defaultConfig),
+      autoplayVideoSelectors:
+        arrayOrDefault(storedConfig.autoplayVideoSelectors, defaultConfig.autoplayVideoSelectors),
       autoCloseSelectors: arrayOrDefault(storedConfig.autoCloseSelectors, defaultConfig.autoCloseSelectors),
       escapeCloseSelectors: arrayOrDefault(storedConfig.escapeCloseSelectors, defaultConfig.escapeCloseSelectors),
       autoCloseText: arrayOrDefault(storedConfig.autoCloseText, defaultConfig.autoCloseText),

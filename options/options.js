@@ -6,8 +6,10 @@ const fields = {
   scanDurationMs: document.querySelector("#scanDurationMs"),
   badgeSizePx: document.querySelector("#badgeSizePx"),
   badgeDurationMs: document.querySelector("#badgeDurationMs"),
+  blockAutoplayVideos: document.querySelector("#blockAutoplayVideos"),
   sitesList: document.querySelector("#sitesList"),
   newSite: document.querySelector("#newSite"),
+  autoplayVideoSelectors: document.querySelector("#autoplayVideoSelectors"),
   autoCloseSelectors: document.querySelector("#autoCloseSelectors"),
   escapeCloseSelectors: document.querySelector("#escapeCloseSelectors"),
   autoCloseText: document.querySelector("#autoCloseText"),
@@ -82,7 +84,12 @@ function mergeConfig(storedConfig) {
     scanDurationMs: numberOrDefault(storedConfig.scanDurationMs, defaultConfig.scanDurationMs),
     badgeSizePx: numberOrDefault(storedConfig.badgeSizePx, defaultConfig.badgeSizePx),
     badgeDurationMs: numberOrDefault(storedConfig.badgeDurationMs, defaultConfig.badgeDurationMs),
+    blockAutoplayVideos:
+      typeof storedConfig.blockAutoplayVideos === "boolean"
+        ? storedConfig.blockAutoplayVideos
+        : defaultConfig.blockAutoplayVideos,
     sites: configuredSites(storedConfig),
+    autoplayVideoSelectors: arrayOrDefault(storedConfig.autoplayVideoSelectors, defaultConfig.autoplayVideoSelectors),
     autoCloseSelectors: arrayOrDefault(storedConfig.autoCloseSelectors, defaultConfig.autoCloseSelectors),
     escapeCloseSelectors: arrayOrDefault(storedConfig.escapeCloseSelectors, defaultConfig.escapeCloseSelectors),
     autoCloseText: arrayOrDefault(storedConfig.autoCloseText, defaultConfig.autoCloseText),
@@ -296,7 +303,9 @@ function render(config) {
   fields.scanDurationMs.value = config.scanDurationMs;
   fields.badgeSizePx.value = config.badgeSizePx;
   fields.badgeDurationMs.value = config.badgeDurationMs;
+  fields.blockAutoplayVideos.checked = config.blockAutoplayVideos !== false;
   sites = uniqueSites(config.sites);
+  fields.autoplayVideoSelectors.value = toLines(config.autoplayVideoSelectors);
   fields.autoCloseSelectors.value = toLines(config.autoCloseSelectors);
   fields.escapeCloseSelectors.value = toLines(config.escapeCloseSelectors);
   fields.autoCloseText.value = toLines(config.autoCloseText);
@@ -311,7 +320,9 @@ function readFormConfig() {
     scanDurationMs: Number(fields.scanDurationMs.value),
     badgeSizePx: Number(fields.badgeSizePx.value),
     badgeDurationMs: Number(fields.badgeDurationMs.value),
+    blockAutoplayVideos: fields.blockAutoplayVideos.checked,
     sites,
+    autoplayVideoSelectors: fromLines(fields.autoplayVideoSelectors.value),
     autoCloseSelectors: fromLines(fields.autoCloseSelectors.value),
     escapeCloseSelectors: fromLines(fields.escapeCloseSelectors.value),
     autoCloseText: fromLines(fields.autoCloseText.value),
@@ -322,6 +333,7 @@ function readFormConfig() {
 function validateConfig(config) {
   const arrayFields = [
     "sites",
+    "autoplayVideoSelectors",
     "autoCloseSelectors",
     "escapeCloseSelectors",
     "autoCloseText",
@@ -330,6 +342,10 @@ function validateConfig(config) {
 
   if (typeof config.enabled !== "boolean") {
     throw new Error("Enabled must be true or false.");
+  }
+
+  if (typeof config.blockAutoplayVideos !== "boolean") {
+    throw new Error("Block autoplay videos must be true or false.");
   }
 
   if (!Number.isFinite(config.scanIntervalMs) || config.scanIntervalMs < 50) {

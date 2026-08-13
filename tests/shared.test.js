@@ -65,6 +65,8 @@ test("mergeConfig keeps legacy site-rule fallback support", () => {
   const defaultConfig = {
     badgeDurationMs: 2000,
     badgeSizePx: 48,
+    autoplayVideoSelectors: ["video[autoplay]"],
+    blockAutoplayVideos: true,
     scanDurationMs: 15000,
     scanIntervalMs: 250,
     sites: ["default.test"],

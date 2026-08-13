@@ -4,6 +4,14 @@
   "scanDurationMs": 15000,
   "badgeSizePx": 48,
   "badgeDurationMs": 2000,
+  "blockAutoplayVideos": true,
+  "autoplayVideoSelectors": [
+    "video[data-html5-video]",
+    ".id-playback video",
+    ".clappr-player video",
+    "video[autoplay]",
+    "video[muted][playsinline]"
+  ],
   "sites": [
     "ge.globo.com",
     "g1.globo.com",
